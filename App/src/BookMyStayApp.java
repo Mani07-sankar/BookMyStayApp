@@ -1,8 +1,8 @@
-// Version 5.0
+// Version 6.0
 
 import java.util.*;
 
-// Reservation (Actor)
+// Reservation
 class Reservation {
     String guestName;
     String roomType;
@@ -11,31 +11,74 @@ class Reservation {
         guestName = g;
         roomType = r;
     }
+}
 
-    void show() {
-        System.out.println("Guest: " + guestName + " | Room: " + roomType);
+// Inventory Service
+class RoomInventory {
+    private HashMap<String, Integer> map;
+
+    RoomInventory() {
+        map = new HashMap<>();
+        map.put("Single Room", 2);
+        map.put("Double Room", 1);
+        map.put("Suite Room", 1);
+    }
+
+    int getAvailability(String type) {
+        return map.getOrDefault(type, 0);
+    }
+
+    void reduce(String type) {
+        map.put(type, map.get(type) - 1);
     }
 }
 
-// Booking Queue (FIFO)
-class BookingQueue {
+// Booking Service
+class BookingService {
     private Queue<Reservation> queue;
+    private RoomInventory inv;
 
-    BookingQueue() {
-        queue = new LinkedList<>();
+    private Set<String> usedIds; // prevent duplicates
+    private HashMap<String, Set<String>> allocated; // type -> IDs
+
+    BookingService(Queue<Reservation> q, RoomInventory i) {
+        queue = q;
+        inv = i;
+        usedIds = new HashSet<>();
+        allocated = new HashMap<>();
     }
 
-    // Add request
-    void addRequest(Reservation r) {
-        queue.add(r);
-        System.out.println("Request added: " + r.guestName);
-    }
+    void process() {
+        System.out.println("=== Processing Bookings ===\n");
 
-    // Display queue
-    void showQueue() {
-        System.out.println("\n=== Booking Queue ===");
-        for (Reservation r : queue) {
-            r.show();
+        while (!queue.isEmpty()) {
+            Reservation r = queue.poll();
+
+            if (inv.getAvailability(r.roomType) > 0) {
+
+                // generate unique ID
+                String id;
+                do {
+                    id = r.roomType.substring(0, 2).toUpperCase()
+                            + (int)(Math.random() * 1000);
+                } while (usedIds.contains(id));
+
+                usedIds.add(id);
+
+                // store allocation
+                allocated.putIfAbsent(r.roomType, new HashSet<>());
+                allocated.get(r.roomType).add(id);
+
+                // update inventory
+                inv.reduce(r.roomType);
+
+                System.out.println("Confirmed: " + r.guestName +
+                        " | Room: " + r.roomType +
+                        " | ID: " + id);
+            } else {
+                System.out.println("Rejected: " + r.guestName +
+                        " | No " + r.roomType + " available");
+            }
         }
     }
 }
@@ -44,14 +87,21 @@ class BookingQueue {
 public class BookMyStayApp {
     public static void main(String[] args) {
 
-        BookingQueue bq = new BookingQueue();
+        // Queue (FIFO)
+        Queue<Reservation> queue = new LinkedList<>();
 
-        // Add booking requests (FIFO order)
-        bq.addRequest(new Reservation("Alice", "Single Room"));
-        bq.addRequest(new Reservation("Bob", "Double Room"));
-        bq.addRequest(new Reservation("Charlie", "Suite Room"));
+        queue.add(new Reservation("Alice", "Single Room"));
+        queue.add(new Reservation("Bob", "Single Room"));
+        queue.add(new Reservation("Charlie", "Single Room")); // should fail
+        queue.add(new Reservation("David", "Double Room"));
 
-        // Display queue
-        bq.showQueue();
+        // Inventory
+        RoomInventory inv = new RoomInventory();
+
+        // Booking Service
+        BookingService bs = new BookingService(queue, inv);
+
+        // Process bookings
+        bs.process();
     }
 }
