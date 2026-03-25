@@ -1,60 +1,41 @@
-// Version 4.0
+// Version 5.0
 
 import java.util.*;
 
-// Room (Domain Model)
-class Room {
-    String type;
-    int beds;
-    double price;
+// Reservation (Actor)
+class Reservation {
+    String guestName;
+    String roomType;
 
-    Room(String t, int b, double p) {
-        type = t;
-        beds = b;
-        price = p;
+    Reservation(String g, String r) {
+        guestName = g;
+        roomType = r;
     }
 
     void show() {
-        System.out.println(type + " | Beds:" + beds + " | ₹" + price);
+        System.out.println("Guest: " + guestName + " | Room: " + roomType);
     }
 }
 
-// Inventory (State Holder)
-class RoomInventory {
-    private HashMap<String, Integer> map;
+// Booking Queue (FIFO)
+class BookingQueue {
+    private Queue<Reservation> queue;
 
-    RoomInventory() {
-        map = new HashMap<>();
-        map.put("Single Room", 10);
-        map.put("Double Room", 5);
-        map.put("Suite Room", 0); // unavailable
+    BookingQueue() {
+        queue = new LinkedList<>();
     }
 
-    int getAvailability(String type) {
-        return map.getOrDefault(type, 0);
-    }
-}
-
-// Search Service (Read-Only)
-class RoomSearch {
-    private RoomInventory inv;
-    private List<Room> rooms;
-
-    RoomSearch(RoomInventory i, List<Room> r) {
-        inv = i;
-        rooms = r;
+    // Add request
+    void addRequest(Reservation r) {
+        queue.add(r);
+        System.out.println("Request added: " + r.guestName);
     }
 
-    void search() {
-        System.out.println("=== Available Rooms ===\n");
-
-        for (Room r : rooms) {
-            int available = inv.getAvailability(r.type);
-
-            if (available > 0) {   // filter unavailable
-                r.show();
-                System.out.println("Available: " + available + "\n");
-            }
+    // Display queue
+    void showQueue() {
+        System.out.println("\n=== Booking Queue ===");
+        for (Reservation r : queue) {
+            r.show();
         }
     }
 }
@@ -63,17 +44,14 @@ class RoomSearch {
 public class BookMyStayApp {
     public static void main(String[] args) {
 
-        // Inventory
-        RoomInventory inv = new RoomInventory();
+        BookingQueue bq = new BookingQueue();
 
-        // Room list
-        List<Room> rooms = new ArrayList<>();
-        rooms.add(new Room("Single Room", 1, 2000));
-        rooms.add(new Room("Double Room", 2, 3500));
-        rooms.add(new Room("Suite Room", 3, 6000));
+        // Add booking requests (FIFO order)
+        bq.addRequest(new Reservation("Alice", "Single Room"));
+        bq.addRequest(new Reservation("Bob", "Double Room"));
+        bq.addRequest(new Reservation("Charlie", "Suite Room"));
 
-        // Search
-        RoomSearch search = new RoomSearch(inv, rooms);
-        search.search();
+        // Display queue
+        bq.showQueue();
     }
 }
