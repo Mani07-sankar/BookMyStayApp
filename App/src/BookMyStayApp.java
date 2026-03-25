@@ -1,45 +1,39 @@
-// Version 2.0
+// Version 3.0
 
-abstract class Room {
-    String type;
-    int beds;
-    double price;
+import java.util.HashMap;
 
-    Room(String t, int b, double p) {
-        type = t;
-        beds = b;
-        price = p;
+class RoomInventory {
+    private HashMap<String, Integer> map;
+
+    RoomInventory() {
+        map = new HashMap<>();
+        map.put("Single Room", 10);
+        map.put("Double Room", 5);
+        map.put("Suite Room", 2);
     }
 
-    abstract void show();
-}
+    void show() {
+        System.out.println("=== Inventory ===");
+        for (String key : map.keySet()) {
+            System.out.println(key + " -> " + map.get(key));
+        }
+    }
 
-class SingleRoom extends Room {
-    SingleRoom() { super("Single Room", 1, 2000); }
-    void show() { System.out.println(type+" | Beds:"+beds+" | ₹"+price); }
-}
-
-class DoubleRoom extends Room {
-    DoubleRoom() { super("Double Room", 2, 3500); }
-    void show() { System.out.println(type+" | Beds:"+beds+" | ₹"+price); }
-}
-
-class SuiteRoom extends Room {
-    SuiteRoom() { super("Suite Room", 3, 6000); }
-    void show() { System.out.println(type+" | Beds:"+beds+" | ₹"+price); }
+    void update(String type, int count) {
+        map.put(type, count);
+    }
 }
 
 public class BookMyStayApp {
     public static void main(String[] args) {
 
-        Room r1 = new SingleRoom();
-        Room r2 = new DoubleRoom();
-        Room r3 = new SuiteRoom();
+        RoomInventory inv = new RoomInventory();
 
-        int s = 10, d = 5, su = 2;
+        inv.show();
 
-        r1.show(); System.out.println("Available: " + s);
-        r2.show(); System.out.println("Available: " + d);
-        r3.show(); System.out.println("Available: " + su);
+        System.out.println("\nUpdating Single Room...\n");
+        inv.update("Single Room", 8);
+
+        inv.show();
     }
 }
