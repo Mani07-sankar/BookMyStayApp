@@ -1,57 +1,91 @@
-// Version 5.0
+// Version 6.0
 
 import java.util.*;
 
-// Reservation (Actor)
+// Reservation
 class Reservation {
-    String guestName;
-    String roomType;
+    String name;
+    String type;
 
-    Reservation(String g, String r) {
-        guestName = g;
-        roomType = r;
-    }
-
-    void show() {
-        System.out.println("Guest: " + guestName + " | Room: " + roomType);
+    Reservation(String n, String t) {
+        name = n;
+        type = t;
     }
 }
 
-// Booking Queue (FIFO)
-class BookingQueue {
-    private Queue<Reservation> queue;
+// Inventory
+class RoomInventory {
+    HashMap<String, Integer> map = new HashMap<>();
 
-    BookingQueue() {
-        queue = new LinkedList<>();
+    RoomInventory() {
+        map.put("Single Room", 2);
+        map.put("Double Room", 1);
+        map.put("Suite Room", 1);
     }
 
-    // Add request
-    void addRequest(Reservation r) {
-        queue.add(r);
-        System.out.println("Request added: " + r.guestName);
+    int get(String t) {
+        return map.getOrDefault(t, 0);
     }
 
-    // Display queue
-    void showQueue() {
-        System.out.println("\n=== Booking Queue ===");
-        for (Reservation r : queue) {
-            r.show();
+    void reduce(String t) {
+        map.put(t, map.get(t) - 1);
+    }
+}
+
+// Booking Service
+class BookingService {
+    Queue<Reservation> q;
+    RoomInventory inv;
+
+    Set<String> ids = new HashSet<>();
+    HashMap<String, Set<String>> allocated = new HashMap<>();
+
+    BookingService(Queue<Reservation> q, RoomInventory i) {
+        this.q = q;
+        this.inv = i;
+    }
+
+    void process() {
+        while (!q.isEmpty()) {
+            Reservation r = q.poll();
+
+            if (inv.get(r.type) > 0) {
+
+                String id;
+                do {
+                    id = r.type.substring(0, 2).toUpperCase() + (int)(Math.random()*1000);
+                } while (ids.contains(id));
+
+                ids.add(id);
+
+                allocated.putIfAbsent(r.type, new HashSet<>());
+                allocated.get(r.type).add(id);
+
+                inv.reduce(r.type);
+
+                System.out.println("Confirmed: " + r.name + " | " + r.type + " | ID: " + id);
+            } else {
+                System.out.println("Rejected: " + r.name + " | No " + r.type);
+            }
         }
     }
 }
 
-// Main Class
+// Main
 public class BookMyStayApp {
     public static void main(String[] args) {
 
-        BookingQueue bq = new BookingQueue();
+        Queue<Reservation> q = new LinkedList<>();
 
-        // Add booking requests (FIFO order)
-        bq.addRequest(new Reservation("Alice", "Single Room"));
-        bq.addRequest(new Reservation("Bob", "Double Room"));
-        bq.addRequest(new Reservation("Charlie", "Suite Room"));
+        q.add(new Reservation("Alice", "Single Room"));
+        q.add(new Reservation("Bob", "Single Room"));
+        q.add(new Reservation("Charlie", "Single Room"));
+        q.add(new Reservation("David", "Double Room"));
 
-        // Display queue
-        bq.showQueue();
+        RoomInventory inv = new RoomInventory();
+
+        BookingService bs = new BookingService(q, inv);
+
+        bs.process();
     }
 }
