@@ -1,67 +1,73 @@
-// Version 9.0
+// Version 10.0
 
 import java.util.*;
-
-// Custom Exception
-class InvalidBookingException extends Exception {
-    InvalidBookingException(String msg) {
-        super(msg);
-    }
-}
 
 // Reservation
 class Reservation {
     String guest;
-    String roomType;
+    String type;
+    String id;
 
-    Reservation(String g, String r) {
+    Reservation(String g, String t, String i) {
         guest = g;
-        roomType = r;
+        type = t;
+        id = i;
     }
 }
 
 // Inventory
 class RoomInventory {
-    private HashMap<String, Integer> map = new HashMap<>();
+    HashMap<String, Integer> map = new HashMap<>();
 
     RoomInventory() {
-        map.put("Single Room", 2);
+        map.put("Single Room", 1);
         map.put("Double Room", 1);
-        map.put("Suite Room", 1);
     }
 
-    int get(String type) {
-        return map.getOrDefault(type, -1);
+    void increase(String type) {
+        map.put(type, map.get(type) + 1);
     }
 
-    void reduce(String type) throws InvalidBookingException {
-        int count = map.get(type);
-
-        if (count <= 0) {
-            throw new InvalidBookingException("No rooms available for " + type);
-        }
-
-        map.put(type, count - 1);
+    void show() {
+        System.out.println("Inventory: " + map);
     }
 }
 
-// Validator
-class BookingValidator {
+// Cancellation Service
+class CancellationService {
+    private HashMap<String, Reservation> bookings;
+    private Stack<String> rollbackStack;
+    private RoomInventory inv;
 
-    static void validate(Reservation r, RoomInventory inv)
-            throws InvalidBookingException {
+    CancellationService(HashMap<String, Reservation> b, RoomInventory i) {
+        bookings = b;
+        inv = i;
+        rollbackStack = new Stack<>();
+    }
 
-        if (r.guest == null || r.guest.isEmpty()) {
-            throw new InvalidBookingException("Guest name cannot be empty");
+    void cancel(String id) {
+
+        if (!bookings.containsKey(id)) {
+            System.out.println("Error: Booking not found for ID " + id);
+            return;
         }
 
-        if (inv.get(r.roomType) == -1) {
-            throw new InvalidBookingException("Invalid room type: " + r.roomType);
-        }
+        Reservation r = bookings.get(id);
 
-        if (inv.get(r.roomType) <= 0) {
-            throw new InvalidBookingException("Room not available: " + r.roomType);
-        }
+        // push to rollback stack
+        rollbackStack.push(id);
+
+        // restore inventory
+        inv.increase(r.type);
+
+        // remove booking
+        bookings.remove(id);
+
+        System.out.println("Cancelled: " + r.guest + " | " + r.type + " | ID: " + id);
+    }
+
+    void showRollback() {
+        System.out.println("Rollback Stack: " + rollbackStack);
     }
 }
 
@@ -69,27 +75,26 @@ class BookingValidator {
 public class BookMyStayApp {
     public static void main(String[] args) {
 
+        // Inventory
         RoomInventory inv = new RoomInventory();
 
-        // Test cases (valid + invalid)
-        Reservation r1 = new Reservation("Alice", "Single Room");
-        Reservation r2 = new Reservation("", "Double Room"); // invalid name
-        Reservation r3 = new Reservation("Bob", "Luxury Room"); // invalid type
-        Reservation r4 = new Reservation("Charlie", "Suite Room");
+        // Confirmed bookings (simulated)
+        HashMap<String, Reservation> bookings = new HashMap<>();
+        bookings.put("R1", new Reservation("Alice", "Single Room", "R1"));
+        bookings.put("R2", new Reservation("Bob", "Double Room", "R2"));
 
-        Reservation[] list = {r1, r2, r3, r4};
+        // Cancellation Service
+        CancellationService cs = new CancellationService(bookings, inv);
 
-        for (Reservation r : list) {
-            try {
-                BookingValidator.validate(r, inv);
-                inv.reduce(r.roomType);
+        inv.show();
 
-                System.out.println("Booking Confirmed: " + r.guest +
-                        " | " + r.roomType);
+        // Cancel booking
+        cs.cancel("R1");
 
-            } catch (InvalidBookingException e) {
-                System.out.println("Error: " + e.getMessage());
-            }
-        }
+        // Try invalid cancellation
+        cs.cancel("R3");
+
+        inv.show();
+        cs.showRollback();
     }
 }
